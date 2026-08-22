@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.penguinbot.config.AppConfig;
 import io.jsonwebtoken.Jwts;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
@@ -20,6 +22,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
@@ -28,6 +31,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class GitHubAppAuthService {
     private static final Logger log = LoggerFactory.getLogger(GitHubAppAuthService.class);
+
+    static {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+    }
 
     private final AppConfig appConfig;
     private final ObjectMapper objectMapper;
@@ -45,11 +54,20 @@ public class GitHubAppAuthService {
     private void loadPrivateKey() {
         try (PEMParser pemParser = new PEMParser(new FileReader(appConfig.getGithub().getPrivateKeyPath()))) {
             Object object = pemParser.readObject();
-            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-            KeyPair keyPair = converter.getKeyPair((PEMKeyPair) object);
-            this.privateKey = keyPair.getPrivate();
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(new BouncyCastleProvider());
+            
+            if (object instanceof PEMKeyPair pemKeyPair) {
+                this.privateKey = converter.getKeyPair(pemKeyPair).getPrivate();
+            } else if (object instanceof PrivateKeyInfo privateKeyInfo) {
+                this.privateKey = converter.getPrivateKey(privateKeyInfo);
+            } else if (object instanceof KeyPair keyPair) {
+                this.privateKey = keyPair.getPrivate();
+            } else {
+                throw new IllegalArgumentException("Unexpected private key format: " + (object != null ? object.getClass().getName() : "null"));
+            }
+            log.info("Successfully loaded GitHub App private key");
         } catch (Exception e) {
-            log.error("Failed to load GitHub App private key", e);
+            log.error("Failed to load GitHub App private key from {}", appConfig.getGithub().getPrivateKeyPath(), e);
             throw new RuntimeException("Failed to load private key", e);
         }
     }
