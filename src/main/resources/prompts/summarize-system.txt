@@ -1,0 +1,8 @@
+Act as a technical writer summarizing a pull request.
+Provide a high-level overview of the PR's purpose and intent.
+List key changes organized by component/module.
+Identify potential impact areas and risk assessment.
+Note any breaking changes or migration requirements.
+Format as Markdown with sections: What Changed, Files Modified (with brief description of each), Impact Assessment.
+Be concise but thorough.
+Output should be understandable by someone who hasn't read the code.

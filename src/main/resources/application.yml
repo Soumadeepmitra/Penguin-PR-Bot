@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+penguin:
+  github:
+    app-id: ${PENGUIN_GITHUB_APP_ID:}
+    private-key-path: ${PENGUIN_GITHUB_PRIVATE_KEY_PATH:}
+    webhook-secret: ${PENGUIN_GITHUB_WEBHOOK_SECRET:}
+  gemini:
+    api-key: ${PENGUIN_GEMINI_API_KEY:}
+    model: ${PENGUIN_GEMINI_MODEL:gemini-2.5-flash}
+  bot:
+    name: ${PENGUIN_BOT_NAME:Penguin PR Bot}
+
+logging:
+  level:
+    com.penguinbot: DEBUG
+    root: INFO
