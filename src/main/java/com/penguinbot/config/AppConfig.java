@@ -38,7 +38,7 @@ public class AppConfig {
     
     public static class Gemini {
         private String apiKey;
-        private String model = "gemini-2.5-flash";
+        private String model = "gemini-3.6-flash";
         
         public String getApiKey() { return apiKey; }
         public void setApiKey(String apiKey) { this.apiKey = apiKey; }

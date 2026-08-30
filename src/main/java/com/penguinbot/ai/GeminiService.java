@@ -1,5 +1,7 @@
 package com.penguinbot.ai;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.penguinbot.ai.dto.ReviewResult;
 import com.google.genai.Client;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 @Service
 public class GeminiService {
@@ -20,23 +23,62 @@ public class GeminiService {
     
     private final Client geminiClient;
     private final AppConfig appConfig;
+    private final ObjectMapper objectMapper;
     private final String reviewSystemPrompt;
     private final String summarizeSystemPrompt;
     
-    public GeminiService(Client geminiClient, AppConfig appConfig) {
+    public GeminiService(Client geminiClient, AppConfig appConfig, ObjectMapper objectMapper) {
         this.geminiClient = geminiClient;
         this.appConfig = appConfig;
+        this.objectMapper = objectMapper;
         this.reviewSystemPrompt = loadPrompt("prompts/review-system.txt");
         this.summarizeSystemPrompt = loadPrompt("prompts/summarize-system.txt");
     }
     
-    public String reviewCode(String diff, String fileList, String customInstructions) {
+    public ReviewResult reviewCodeStructured(String diff, String fileList, String customInstructions) {
         String systemPrompt = reviewSystemPrompt;
         if (customInstructions != null && !customInstructions.isBlank()) {
             systemPrompt += "\n\nAdditional Review Instructions:\n" + customInstructions;
         }
         String userPrompt = "## Files Changed\n" + fileList + "\n\n## Diff\n```diff\n" + diff + "\n```";
-        return callGemini(systemPrompt, userPrompt);
+        String rawResponse = callGemini(systemPrompt, userPrompt);
+        return parseReviewResult(rawResponse);
+    }
+    
+    public String reviewCode(String diff, String fileList, String customInstructions) {
+        ReviewResult result = reviewCodeStructured(diff, fileList, customInstructions);
+        return result.getSummary();
+    }
+    
+    public ReviewResult parseReviewResult(String rawResponse) {
+        if (rawResponse == null || rawResponse.isBlank()) {
+            return new ReviewResult("No review output generated.", Collections.emptyList());
+        }
+        if (rawResponse.startsWith("⚠️")) {
+            return new ReviewResult(rawResponse, Collections.emptyList());
+        }
+        
+        String cleanJson = rawResponse.trim();
+        if (cleanJson.startsWith("```json")) {
+            cleanJson = cleanJson.substring(7);
+        } else if (cleanJson.startsWith("```")) {
+            cleanJson = cleanJson.substring(3);
+        }
+        if (cleanJson.endsWith("```")) {
+            cleanJson = cleanJson.substring(0, cleanJson.length() - 3);
+        }
+        cleanJson = cleanJson.trim();
+
+        try {
+            ReviewResult result = objectMapper.readValue(cleanJson, ReviewResult.class);
+            if (result.getSummary() == null || result.getSummary().isBlank()) {
+                result.setSummary(rawResponse);
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("Failed to parse Gemini structured JSON review, falling back to markdown summary: {}", e.getMessage());
+            return new ReviewResult(rawResponse, Collections.emptyList());
+        }
     }
     
     public String summarizePR(String diff, String fileList) {

@@ -8,7 +8,7 @@ penguin:
     webhook-secret: ${PENGUIN_GITHUB_WEBHOOK_SECRET:}
   gemini:
     api-key: ${PENGUIN_GEMINI_API_KEY:}
-    model: ${PENGUIN_GEMINI_MODEL:gemini-2.5-flash}
+    model: ${PENGUIN_GEMINI_MODEL:gemini-3.6-flash}
   bot:
     name: ${PENGUIN_BOT_NAME:Penguin PR Bot}
 

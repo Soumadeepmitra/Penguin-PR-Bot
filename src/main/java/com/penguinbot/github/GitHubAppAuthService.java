@@ -127,5 +127,41 @@ public class GitHubAppAuthService {
         }
     }
 
+    private volatile String cachedBotSlug;
+
+    public String getBotSlug() {
+        if (cachedBotSlug != null) {
+            return cachedBotSlug;
+        }
+        try {
+            String jwt = generateJwt();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.github.com/app"))
+                    .header("Authorization", "Bearer " + jwt)
+                    .header("Accept", "application/vnd.github+json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                JsonNode node = objectMapper.readTree(response.body());
+                if (node.hasNonNull("slug")) {
+                    cachedBotSlug = node.get("slug").asText();
+                    log.info("Identified GitHub App slug: {}", cachedBotSlug);
+                    return cachedBotSlug;
+                }
+            } else {
+                log.warn("Failed to fetch app metadata (status {}): {}. Falling back to default app name.", response.statusCode(), response.body());
+            }
+        } catch (Exception e) {
+            log.warn("Error fetching GitHub App slug: {}. Falling back to default bot name.", e.getMessage());
+        }
+        return appConfig.getBot().getName().toLowerCase().replace(" ", "-");
+    }
+
+    public String getBotLogin() {
+        return getBotSlug() + "[bot]";
+    }
+
     private record CachedToken(String token, Instant expiry) {}
 }

@@ -32,11 +32,17 @@ public class DeleteCommentsCommandHandler implements CommandHandler {
     public void handle(CommandContext context) {
         try {
             String botLogin = gitHubApiService.getAuthenticatedBotLogin(context.installationId());
-            List<GHIssueComment> comments = gitHubApiService.getIssueComments(context.installationId(), context.repoOwner(), context.repoName(), context.issueNumber());
+            List<GHIssueComment> botComments = gitHubApiService.listBotComments(
+                    context.installationId(),
+                    context.repoOwner(),
+                    context.repoName(),
+                    context.issueNumber(),
+                    botLogin
+            );
             
             int deletedCount = 0;
-            for (GHIssueComment comment : comments) {
-                if (comment.getUser().getLogin().equals(botLogin) && comment.getId() != context.triggeringCommentId()) {
+            for (GHIssueComment comment : botComments) {
+                if (comment.getId() != context.triggeringCommentId()) {
                     gitHubApiService.deleteComment(context.installationId(), context.repoOwner(), context.repoName(), comment.getId());
                     deletedCount++;
                 }

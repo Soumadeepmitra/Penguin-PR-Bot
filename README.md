@@ -20,7 +20,7 @@
 
 - **Java 17**
 - **Spring Boot 3.3.4** (Web, MVC)
-- **Google GenAI SDK** (Gemini 2.5 Flash)
+- **Google GenAI SDK** (Gemini 3.6 Flash)
 - **Hub4j GitHub API** & **GitHub REST API**
 - **JJWT (Java JWT 0.12.6)** & **BouncyCastle** for GitHub App authentication
 - **Maven**
@@ -43,7 +43,7 @@ PENGUIN_GITHUB_APP_ID=your_github_app_id
 PENGUIN_GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
 PENGUIN_GITHUB_WEBHOOK_SECRET=your_webhook_secret
 PENGUIN_GEMINI_API_KEY=your_gemini_api_key
-PENGUIN_GEMINI_MODEL=gemini-2.5-flash
+PENGUIN_GEMINI_MODEL=gemini-3.6-flash
 PENGUIN_BOT_NAME=Penguin PR Bot
 ```
 
